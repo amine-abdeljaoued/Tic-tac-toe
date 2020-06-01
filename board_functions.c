@@ -1,15 +1,6 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
+#include "board_functions.h"
 
-//Understand exact synthax of messages
+//Understand exact syntax of messages
 
 //Rules: 
 //Player 1 has the 'X'
@@ -34,47 +25,50 @@
 
 
 void show(char board [3][3]){
-    for(int i=0;i<3;i++){
-        for(int j=0;j<3;j++){
-            printf("%c",board[i][j]);
-        }
-        printf("\n");
-    }
+    /* Displays the state of the board given an array of chars of 'X', 'O' and ' ' */
+    printf("\n");
+    printf("    %c | %c | %c\n", board[0][0], board[0][1], board[0][2]);
+    printf("   ---+---+--- \n");
+    printf("    %c | %c | %c\n", board[1][0], board[1][1], board[1][2]);
+    printf("   ---+---+--- \n");
+    printf("    %c | %c | %c\n", board[2][0], board[2][1], board[2][2]);
+    printf("\n");
 }
 
 
 void parse_fyi(char *fyi_msg){
+    /*
+     * Given a FYI message, display the state of the board
+     * Structure of FYI msg:
+     * +--------+--------+--------+--------+--------+--- ... ---+--------+--------+--------+
+     * | FYI    | n      | play_1 | col_1  | row_1  |           | play_n | col_n  | row_n  |
+     * +--------+--------+--------+--------+--------+--- ... ---+--------+--------+--------+
+     * 
+     * Sends filled positions in the board. n indicates the number of filled positions; 
+     * for each position (from 1 to n), the player (1 or 2), the column (0, 1, 2) and 
+     * the row (0, 1, 2) are indicated
+     * 
+     * We display content of the board
+     */
+
     char board[3][3] = {
-        {'-','-','-'},
-        {'-','-','-'},
-        {'-','-','-'}
+        {' ',' ',' '},
+        {' ',' ',' '},
+        {' ',' ',' '}
     };
-    int n = fyi_msg[4] - '0';
-    int x, y, player;
-    for(int i = 0;i<n;i++){
-        y = fyi_msg[8+6*i] - '0';
-        x = fyi_msg[10+6*i] - '0';
-        player = fyi_msg[6+6*i] - '0';
+    int n = fyi_msg[1];
+    int row, col, player;
+    for(int i = 0; i<n; i++){
+        player = fyi_msg[2 + 3*i];
+        col = fyi_msg[3 + 3*i];
+        row = fyi_msg[4 + 3*i];
         if(player==1){
-            board[x][y]='X';
+            board[row][col]='X';
         }
         else{
-            board[x][y]='O';
+            board[row][col]='O';
         }
     }
+    printf("%d filled positions.\n", n);
     show(board);
-}
-
-
-
-
-
-
-int main(){ //For testing
-
-
-    //printf("%d",board[0][1]);
-    char fyi_msg[30]="FYI 3 1 2 2 1 2 1 2 0 0";
-    parse_fyi(fyi_msg);
-    return 0;
 }
