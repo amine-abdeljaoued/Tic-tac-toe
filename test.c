@@ -11,8 +11,8 @@
 
 
 int main(){
-    char* msg="FYI 3 1 2 3 1 2 2 2 0 0";
-    printf("%d", msg[4] - '0' );
-
-
+    char *left="01";
+    char right[2]="10";
+    strcat(left,right);
+    printf("%s",left);
 }

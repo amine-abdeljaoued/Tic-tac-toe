@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
             printf("Insert row: (255 to quit)\n");
             scanf("%d", &row);
             // player wants to leave the game
-            if (row == 255 | col == 255){
+            if( (row == 255) | (col == 255) ){
                 printf("You left the game.\n");
                 int s = sendto(sockfd, left, 1, 0, serv_addr, sizeof(struct sockaddr_in));
                 if (s < 0){
@@ -107,6 +107,7 @@ int main(int argc, char *argv[]){
            if (game_state==0){ printf("End of game: This game was not won by anyone! \n"); } // for tie or graceful termination
            else{ printf("Player %d won the game! Good game. \n", game_state); }
            close(sockfd);
+           free(msg);
            return 0;
         }
     }

@@ -7,9 +7,6 @@
 //Player 2 has the 'O'
 //The board will only be stored on the server
 
-//This file will be renamed in .h, or split into .c .h ...
-
-
 //Function on board:
 
 //parse_fyi : shows a 3x3 board with 'X' and 'O' from a buffer containing a FYI message
@@ -17,7 +14,7 @@
 
 //create_fyi : given a board, send fyi message
 
-//valid_move : returns 1 if the move is valid
+//valid_mov : returns 1 if the move is valid
 
 //update_mov : update a given board with a MOV 
 
@@ -72,3 +69,170 @@ void parse_fyi(char *fyi_msg){
     printf("%d filled positions.\n", n);
     show(board);
 }
+
+char *create_fyi(char board[3][3]){
+    
+    int n=0,a=0,b=0;
+    int player1[20];
+    int player2[20];
+    for(int z = 0;z<20;z++){
+        player1[z]=-1;
+        player2[z]=-1;
+    }
+    for(int i = 0;i<3;i++){
+        for(int j = 0;j<3;j++){
+            char play=board[i][j];
+            if(play==' '){
+                continue;
+            }
+            else{
+                n++;
+                if(play=='X'){
+                    player1[a]=j;
+                    player1[a+1]=i;
+                    a+=2;
+                }
+                else{
+                    player2[b]=j;
+                    player2[b+1]=i;
+                    b+=2;
+                }
+            }
+        }
+    }
+    int length = n*3 + 3; //3 and not 2 for the '\0'
+    char *fyi_msg = malloc(length);
+    fyi_msg[0]= FYI;
+    fyi_msg[1]=n;
+
+    
+    //Then addind colums and rows
+    int z = 0, index = 2;
+    while( (player1[z]!= -1) && (player1[z+1]!= -1) ){
+        fyi_msg[index]=1;
+        fyi_msg[index+1]=player1[z];
+        fyi_msg[index+2]=player1[z+1];
+        index +=3;
+        z+=2;
+    }
+    z = 0;
+    while( (player2[z]!= -1) && (player2[z+1]!= -1) ){
+        fyi_msg[index]=2;
+        fyi_msg[index+1]=player2[z];
+        fyi_msg[index+2]=player2[z+1];
+        index +=3;
+        z+=2;
+    }
+    fyi_msg[length-1]='\0';
+    return fyi_msg;
+}
+
+int valid_mov(char *mov_msg){
+    if( (mov_msg[1]<3)&&(mov_msg[1]>=0) ){
+        if( (mov_msg[2]<3)&&(mov_msg[2]>=0) ){
+            return 1;
+        }
+    }
+    return 0;
+
+}
+
+void update_mov(char (*board)[3], char*mov_msg, int player){
+    int j = mov_msg[1];
+    int i = mov_msg[2];
+    
+    if(player==1){
+        board[i][j]='X';
+    }
+    else{
+        board[i][j]='O';
+    }
+}  
+
+int check_terminated(char (*board)[3]){
+    int n=0; //Number of plays
+    int p1[2]={0,0};
+    int p2[2]={0,0};
+    //We first check if a player has completed a row or column
+    for(int i=0;i<3;i++){
+        for(int j=0; j<3; j++){
+            if(board[i][j]=='X'){
+                p1[0]+=1; //Checking i-th row
+            }
+            if(board[j][i]=='X'){
+                p1[1]+=1; // Checking i-th column
+            }
+            if(board[i][j]=='O'){
+                p2[0]+=1;
+            }
+            if(board[j][i]=='O'){
+                p2[1]+=1;
+            }
+        }
+    if((p1[0]==3) | (p1[1]==3)){
+        return 1;
+    }
+    if((p2[0]==3) | (p2[1]==3)){
+        return 2;
+    }
+    p1[0]=0, p1[1]=0;
+    p1[0]=0, p1[1]=0;
+    }
+    //Then diagonal
+    if(board[1][1] != ' '){
+        if(board[1][1]=='X'){
+            if((board[0][0]=='X')&&(board[2][2]=='X')){
+                return 1;
+            }
+            if((board[0][2]=='X')&&(board[2][0]=='X')){
+                return 1;
+            }
+        else{
+            if((board[0][0]=='O')&&(board[2][2]=='O')){
+                return 2;
+            }
+            if((board[0][2]=='O')&&(board[2][0]=='O')){
+                return 2;
+            }
+
+        }
+        }
+    }
+    //Then check for draw
+    for(int i = 0;i<3;i++){
+        for(int j = 0;j<3;j++){
+            if(board[i][j]!=' '){
+                n+=1;
+            }
+        }
+    }
+    if(n==9){
+        return 0;
+    }
+    return -1; //Not finished
+
+}
+
+/* int main(){
+    char board[3][3] = {
+        {'X',' ',' '},
+        {'O',' ',' '},
+        {'X',' ',' '}
+    };
+    char* test = create_fyi(board);
+    //printf("%d",test[1]);
+    parse_fyi(test);
+    char move[4];
+    move[0] = MOV;
+    move[1] = 1;
+    move[2] = 1;
+    move[3] = '\0';
+
+    int i = valid_mov(move);
+    printf("%d",i);
+    update_mov(board,move,1);
+    show(board);
+    int j =check_terminated(board);
+    printf("%d",j);
+    return 0;
+} */
