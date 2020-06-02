@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdbool.h> 
+
 #include "board_functions.c"
 
 
@@ -18,6 +20,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
     
+    // Set up our server
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(sockfd<0){
         printf("Error opening the socket");
@@ -25,88 +28,173 @@ int main(int argc, char *argv[]){
     }
     socklen_t len = (sizeof(struct sockaddr_in));
     struct sockaddr_in server_addr;
-    memset(&server_addr, 0, len); //To avoid having "garbage" from any previous actions, clean it.
-
+    memset(&server_addr, 0, len); // To avoid having "garbage" from any previous actions, clean it.
     server_addr.sin_family=AF_INET;
-    server_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
-
+    server_addr.sin_addr.s_addr=INADDR_ANY;
     server_addr.sin_port=htons(atoi(argv[1]));
 
-    if(bind(sockfd,(struct sockaddr * ) &server_addr,len) == -1){
+    struct sockaddr* server;
+    server = (struct sockaddr*)&server_addr;
+
+    if(bind(sockfd,server,len) == -1){
         printf("Could not bind socket");
         return 1;
     }
 
-    //We start here
-    int n = 0; //Numbers of players
-    struct sockaddr_in client_addr; //Address of client
-    memset(&client_addr, 0, len);
+    // Set up for players
+    int n = 0;                      // Numbers of players
     char *receive_buf = malloc(buff_size1);
-    char *greeting_msg1 = "Welcome! You are player 1 in game, you play with X";
-    char *greeting_msg2 = "Welcome! You are player 2 in game, you play with O"; 
-    Player player1, player2;
+    
+    // Greeting messages
+    char *greeting_msg1 = " Welcome! You are player 1 in game, you play with X \0";
+    char *greeting_msg2 = " Welcome! You are player 2 in game, you play with O \0"; 
+    char *g1 = malloc(strlen(greeting_msg1)+1);
+    *g1= TXT; 
+    memcpy(g1+1, greeting_msg1, strlen(greeting_msg1));
+    char *g2 = malloc(strlen(greeting_msg2)+1);
+    *g2 = TXT;
+    memcpy(g2+1, greeting_msg2, strlen(greeting_msg2));
 
+    // Where we store our game
+    Game game;
     printf("Waiting for connections...\n");
-    while(n<2){
+
+    // Assign our two players
+    while( n < 2 ){ 
+        struct sockaddr_in *client_addr = malloc(sizeof(struct sockaddr_in)); // Address of client
+
         int play = recvfrom(sockfd, receive_buf, buff_size1, 0, (struct sockaddr*)&client_addr, &len);
-        sendto(sockfd, greeting_msg2,strlen(greeting_msg2),0,(struct sockaddr*)&client_addr,len);
-
-        printf("received");
-        if(play>0){
-            if(n==1){
-                
-                player2.address = (struct sockaddr*)&client_addr;
-                sendto(sockfd, greeting_msg2,strlen(greeting_msg2),0,player2.address,len);
-                n++;
-                printf("Player 2 assigned.");
-            }
-            if(n==0){
-                
-                player1.address = (struct sockaddr*)&client_addr;
-                sendto(sockfd, greeting_msg1,strlen(greeting_msg1),0,player1.address,len);
-                n++;
-                printf("Player 1 assigned.");
-
-            }
-
-        memset(&client_addr, 0, len);
-        receive_buf-=play;
+        if (play<=0){
+            fprintf(stderr,"Error receiving joining msg");
+            return 1;
+        }
+        int s;
+        struct sockaddr* client = (struct sockaddr*) &client_addr;
+        if(n==1){
+            game.players[1].address = client;
+            s = sendto(sockfd, g2,strlen(greeting_msg2),0,game.players[1].address,len);
+            n++;
+            printf("Player 2 assigned.\n");
+        }
+        if(n==0){
+            game.players[0].address = client;
+            s = sendto(sockfd, g1,strlen(greeting_msg1),0,game.players[0].address,len);
+            n++;
+            printf("Player 1 assigned.\n");
+        }
+        if (s<0){
+        fprintf(stderr,"Error sending greeting msg");
+        return 1;
+        }
+        memset(receive_buf,0,buff_size1);
+        if (game.players[0].address == game.players[1].address){
+            printf("we have the same address\n");
         }
     }
 
-    char board[3][3] = {
+    free(g1);
+    free(g2);
+
+    // initialise our game
+    char board[3][3] = {            // Our board
         {' ',' ',' '},
         {' ',' ',' '},
         {' ',' ',' '}
-    }; //Our board
+    };              
+    game.turn = 0;              // Player 1 starts
+    game.play = 1;              // Game is ready to start
+    game.char_rep[0] = 'X';     // Char representation of each player
+    game.char_rep[1] = 'O';
+
+    //Initialise buffers
+    char* mym = malloc(1);                                  // Buffer for MYM
+    *mym = MYM;
+    char* bad_move = "Invalid move, please try again! \n";  // Buffer for an invalid move
+    char* bm = malloc(strlen(bad_move + 1));
+    *bm = TXT;
+    memcpy(bm+1, bad_move, strlen(bad_move));
+    char* fyi_msg = malloc(buff_size1);                     // Buffer for FYI
+
+    // We can start the main game loop
+    while(game.play){
+        // 1. Send FYI msg
+        memset(fyi_msg,0,buff_size1);   // reset to avoid problems
+        memset(receive_buf,0,buff_size1);
+        fyi_msg = create_fyi(board);
+        int s = sendto(sockfd, fyi_msg, 3*fyi_msg[1] + 3, 0, game.players[0].address, len);
+        if (s<0){ 
+            fprintf(stderr,"Error sending FYI msg\n");
+            return 1;
+        }
+
+        // 2. Send MYM, get MOV
+        int valid = 0; // as long as the move received is invalid we ask for another one
+        while (!valid) {
+            int s = sendto(sockfd, mym, 1, 0, game.players[game.turn].address,len);
+            if (s<0){ 
+                fprintf(stderr,"Error sending MYM msg");
+                return 1;
+            }
+            struct sockaddr* receive = NULL;
+
+            // note here a third party could interrupt the game
+            // we are not prepared for this !
+            int r = recvfrom(sockfd, receive_buf, buff_size1, 0, receive, &len);
+            if (r<0){ 
+                fprintf(stderr,"Error receiving msg");
+                return 1;
+            }
+            // now we look at what we got: is it a valid MOV?
+            receive_buf[r] = '\0';
+            valid = valid_mov(receive_buf, board);
+            if (!valid){
+                int s = sendto(sockfd, bm,strlen(bad_move),0,game.players[game.turn].address,len);
+                if (s<0){ 
+                    fprintf(stderr,"Error sending bad move TXT msg");
+                    return 1;
+                }
+            }
+        }
     
-    int turn = 1; //Player 1 starts
-    char mym=MYM;
-    //Then here we have our 2 players and we can start the main game loop
-/*     while(1){
+        // 3. Our move can be inserted
+        int col = receive_buf[1];
+        int row = receive_buf[2];
+        printf("Move: (%d, %d)\n", row, col);
+        board[row][col] = game.char_rep[game.turn];
+        printf("Move has been placed.\n");
 
-        char* fyi_msg = create_fyi(board);
-        sendto(sockfd, fyi_msg,strlen(greeting_msg1),0,player1.address,len);
-        sendto(sockfd, MYM ,1,0,player1.address,len);
-        recvfrom(sockfd, receive_buf, buff_size1, 0, (struct sockaddr*)&client_addr, &len);
-    } */
-
-    //Don't forget to free buffers
-
-    
-/*     //memset
-    int x; //msg size
-    struct sockaddr_in client;
-    memset(&client, 0, len);
-    while(1){
-        x  = recvfrom(sockfd, receive_buf, buff_size, 0, (struct sockaddr*)&client,&len);
-
-        printf("server received : %s\n",receive_buf);
-
-        x = sendto(sockfd, receive_buf, buff_size, 0, (struct sockaddr*)&client,len);
-
+        // 4. Check for END
+        int term = check_terminated(board);
+        printf("term = %d\n", term);
+        if (term != -1){
+            char end[3];
+            end[0] = END;
+            end[1] = term;
+            end[2] = '\0';
+            for (int i = 0; i<2; i++){  // tell both players the game is done
+                int s = sendto(sockfd, end,3,0,game.players[i].address,len);
+                if (s<0){ 
+                    fprintf(stderr,"Error sending END msg");
+                    return 1;
+                }
+            }
+            game.play = 0; 
+        }
+        // switch players 
+        game.turn = game.turn ^ 1; 
     }
- */
+
+    free(bm);
+    free(mym);
+    free(fyi_msg);
+    free(receive_buf);
+
+    // for some reason we can't free the follow two: (they're not seen as on the heap?? super confused)
+    // probably linked to how I defined them earlier 
+    // and if we get the two different clients to be diff it will be okay
+
+    //free(game.players[0].address);
+    //free(game.players[1].address);
 
     return 0;
 }

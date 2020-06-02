@@ -66,6 +66,7 @@ void parse_fyi(char *fyi_msg){
             board[row][col]='O';
         }
     }
+    printf("\n");
     printf("%d filled positions.\n", n);
     show(board);
 }
@@ -100,11 +101,10 @@ char *create_fyi(char board[3][3]){
             }
         }
     }
-    int length = n*3 + 3; //3 and not 2 for the '\0'
+    int length = n*3 + 3; // 3 and not 2 for the '\0'
     char *fyi_msg = malloc(length);
-    fyi_msg[0]= FYI;
-    fyi_msg[1]=n;
-
+    *fyi_msg = FYI;
+    *(fyi_msg+1) = n;
     
     //Then addind colums and rows
     int z = 0, index = 2;
@@ -127,10 +127,12 @@ char *create_fyi(char board[3][3]){
     return fyi_msg;
 }
 
-int valid_mov(char *mov_msg){
-    if( (mov_msg[1]<3)&&(mov_msg[1]>=0) ){
-        if( (mov_msg[2]<3)&&(mov_msg[2]>=0) ){
-            return 1;
+int valid_mov(char *mov_msg, char board[3][3]){
+    int col = mov_msg[1];
+    int row = mov_msg[2];
+    if( (col<3)&&(col>=0) ){
+        if( (row<3)&&(row>=0) ){
+            if (board[row][col] == ' '){ return 1; }
         }
     }
     return 0;
