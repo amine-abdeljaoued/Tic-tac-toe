@@ -78,8 +78,6 @@ int main(int argc, char *argv[]){
                 fprintf(stderr,"Error receiving joining msg");
                 continue;
             }
-            
-
             game.players[1].address = (struct sockaddr*) &client_addr2;
             s = sendto(sockfd, g2,strlen(g2),0,game.players[1].address,len);
             n+=1;
@@ -91,17 +89,14 @@ int main(int argc, char *argv[]){
                 fprintf(stderr,"Error receiving joining msg");
                 continue;
             }
-            
-            
             game.players[0].address = (struct sockaddr*) &client_addr1;
             s = sendto(sockfd, g1,strlen(g1),0,game.players[0].address,len);
             n+=1;
             printf("Player 1 assigned.\n");
         }
-
         if (s<0){
-        fprintf(stderr,"Error sending greeting msg");
-        return 1;
+            fprintf(stderr,"Error sending greeting msg\n");
+            return 1;
         }
         memset(receive_buf,0,buff_size1);
 /*         if (game.players[0].address == game.players[1].address){
