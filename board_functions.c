@@ -1,7 +1,5 @@
 #include "board_functions.h"
 
-//Understand exact syntax of messages
-
 //Rules: 
 //Player 1 has the 'X'
 //Player 2 has the 'O'
@@ -155,7 +153,8 @@ int check_terminated(char (*board)[3]){
     int n=0; //Number of plays
     int p1[2]={0,0};
     int p2[2]={0,0};
-    //We first check if a player has completed a row or column
+
+    // Check if a player has completed a row or column
     for(int i=0;i<3;i++){
         for(int j=0; j<3; j++){
             if(board[i][j]=='X'){
@@ -171,16 +170,16 @@ int check_terminated(char (*board)[3]){
                 p2[1]+=1;
             }
         }
-    if((p1[0]==3) | (p1[1]==3)){
-        return 1;
+        if((p1[0]==3) | (p1[1]==3)){
+            return 1;
+        }
+        if((p2[0]==3) | (p2[1]==3)){
+            return 2;
+        }
+        p1[0]=0, p1[1]=0;
+        p2[0]=0, p2[1]=0;
     }
-    if((p2[0]==3) | (p2[1]==3)){
-        return 2;
-    }
-    p1[0]=0, p1[1]=0;
-    p1[0]=0, p1[1]=0;
-    }
-    //Then diagonal
+    // Check diagonals
     if(board[1][1] != ' '){
         if(board[1][1]=='X'){
             if((board[0][0]=='X')&&(board[2][2]=='X')){
@@ -200,7 +199,7 @@ int check_terminated(char (*board)[3]){
         }
         }
     }
-    //Then check for draw
+    // Check for draw
     for(int i = 0;i<3;i++){
         for(int j = 0;j<3;j++){
             if(board[i][j]!=' '){
@@ -212,29 +211,4 @@ int check_terminated(char (*board)[3]){
         return 0;
     }
     return -1; //Not finished
-
 }
-
-/* int main(){
-    char board[3][3] = {
-        {'X',' ',' '},
-        {'O',' ',' '},
-        {'X',' ',' '}
-    };
-    char* test = create_fyi(board);
-    //printf("%d",test[1]);
-    parse_fyi(test);
-    char move[4];
-    move[0] = MOV;
-    move[1] = 1;
-    move[2] = 1;
-    move[3] = '\0';
-
-    int i = valid_mov(move);
-    printf("%d",i);
-    update_mov(board,move,1);
-    show(board);
-    int j =check_terminated(board);
-    printf("%d",j);
-    return 0;
-} */

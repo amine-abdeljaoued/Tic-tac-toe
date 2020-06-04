@@ -20,9 +20,7 @@
  * msg[0] = 3 = END
  * msg[1] = 1 or 2 (whichever player won)
  * The structures show are entries in an array
- */
-
-#define BUFLEN 500      // buffer length, will be the same for client and server
+ */   
 
 // from server to client
 #define TXT 0x04     
@@ -34,21 +32,14 @@
 #define MOV 0x05
 #define LFT 0x06
 
-//Other constants - explain what they are?
-#define buff_size1 50
-#define buff_size2 100
-
-
-typedef struct Player{
-    struct sockaddr* address;
-} Player;
+// buffer length, will be the same for client and server 
+#define buff_size1 100
 
 typedef struct Game{
     // player 1 is turn 0 and players[0]
     // player 2 is turn 1 and players[1]
     int turn;
     int play;
-    Player players[2];
     char char_rep[2];
 } Game;
 

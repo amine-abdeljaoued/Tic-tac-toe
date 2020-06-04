@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
     // to store the info from recvfrom
     struct sockaddr_in server;
 
-    char *msg = malloc(BUFLEN);
+    char *msg = malloc(buff_size1);
     int msg_type;
 
     // Send a message to server to be able to play
@@ -50,8 +50,8 @@ int main(int argc, char *argv[]){
     left[1] = '\0';
 
     while(1){
-        memset(msg,0,BUFLEN);   // reset msg to all 0s to avoid any problems from previous messages
-        int receive = recvfrom(sockfd, msg, BUFLEN, 0, (struct sockaddr*)&server, &len);
+        memset(msg,0,buff_size1);   // reset msg to all 0s to avoid any problems from previous messages
+        int receive = recvfrom(sockfd, msg, buff_size1, 0, (struct sockaddr*)&server, &len);
         if (receive<0){
             fprintf(stderr, "Error receiving message creation failed");
             return 1;
