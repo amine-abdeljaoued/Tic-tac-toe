@@ -10,6 +10,9 @@
 #include <errno.h>
 #include "board_functions.c"
 
+//Amine Abdeljaoued and Anya Fries
+//https://github.com/amine-abdeljaoued/Tic-tac-toe
+
 int main(int argc, char *argv[]){
     // Set up our socket
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);

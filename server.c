@@ -9,8 +9,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdbool.h> 
-
 #include "board_functions.c"
+
+//Amine Abdeljaoued and Anya Fries
+//https://github.com/amine-abdeljaoued/Tic-tac-toe
 
 extern int errno ;
 
@@ -28,9 +30,9 @@ int main(int argc, char *argv[]){
         printf("Error opening the socket\n");
         return 1;
     }
-    socklen_t len = (sizeof(struct sockaddr_in));
+    
     struct sockaddr_in server_addr;
-    memset(&server_addr, 0, len); // To avoid having "garbage" from any previous actions, clean it.
+    memset(&server_addr, 0, sizeof(struct sockaddr_in)); // To avoid having "garbage" from any previous actions, clean it.
     server_addr.sin_family=AF_INET;
     server_addr.sin_addr.s_addr=INADDR_ANY;
     server_addr.sin_port=htons(atoi(argv[1]));
@@ -38,7 +40,7 @@ int main(int argc, char *argv[]){
     struct sockaddr* server;
     server = (struct sockaddr*)&server_addr;
 
-    if(bind(sockfd,server,len) == -1){
+    if(bind(sockfd,server,sizeof(struct sockaddr_in)) == -1){
         printf("Could not bind socket\n");
         return 1;
     }
@@ -62,34 +64,38 @@ int main(int argc, char *argv[]){
     // Where we store our game
     Game game;
     printf("Waiting for connections...\n");
-
-    struct sockaddr client1; // Address of client
-    struct sockaddr client2; // Address of client
+    // where we store our players and their sizes
     struct sockaddr clients[2];
+    socklen_t lens[2];
 
     // Assign our two players
     while( n < 2 ){ 
 
         int s;
         if(n==1){
-            int play = recvfrom(sockfd, receive_buf, buff_size1, 0, &client2, &len);
+            struct sockaddr client2; // Address of client
+            lens[1] = sizeof(client2);
+            int play = recvfrom(sockfd, receive_buf, buff_size1, 0, &client2, &lens[1]);
             if (play<=0){
                 fprintf(stderr,"Error receiving joining msg\n");
                 continue;
             }
             clients[1] = client2;
-            s = sendto(sockfd, g2,strlen(g2),0,&clients[1],len);
+            s = sendto(sockfd, g2,strlen(g2),0,&clients[1],lens[1]);
             n+=1;
             printf("Player 2 assigned.\n");
         }
         if(n==0){
-            int play = recvfrom(sockfd, receive_buf, buff_size1, 0, &client1, &len);
+            struct sockaddr client1; // Address of client
+            lens[0] = sizeof(client1);
+            int play = recvfrom(sockfd, receive_buf, buff_size1, 0, &client1, &lens[0]);
             if (play<=0){
                 fprintf(stderr,"Error receiving joining msg\n");
                 continue;
             }
             clients[0] = client1;
-            s = sendto(sockfd, g1,strlen(g1),0,&clients[0],len);
+
+            s = sendto(sockfd, g1,strlen(g1),0,&clients[0],lens[0]);
             n+=1;
             printf("Player 1 assigned.\n");
         }
@@ -116,7 +122,7 @@ int main(int argc, char *argv[]){
         // 1. Send FYI msg
         memset(receive_buf,0,buff_size1);
         char* fyi_msg = create_fyi(board);
-        int s = sendto(sockfd, fyi_msg, 3*fyi_msg[1] + 2, 0, &clients[game.turn], len);
+        int s = sendto(sockfd, fyi_msg, 3*fyi_msg[1] + 2, 0, &clients[game.turn], lens[game.turn]);
         
         if (s<0){ 
             fprintf(stderr,"Error sending FYI msg %d\n", errno);
@@ -126,7 +132,7 @@ int main(int argc, char *argv[]){
         // 2. Send MYM, get MOV
         int valid = 0; // as long as the move received is invalid we ask for another one
         while (!valid) {
-            int s = sendto(sockfd, mym, 1, 0, &clients[game.turn],len);
+            int s = sendto(sockfd, mym, 1, 0, &clients[game.turn],lens[game.turn]);
             if (s<0){ 
                 fprintf(stderr,"Error sending MYM msg\n");
                 return 1;
@@ -135,7 +141,7 @@ int main(int argc, char *argv[]){
 
             // note here a third party could interrupt the game
             // we are not prepared for this !
-            int r = recvfrom(sockfd, receive_buf, buff_size1, 0, receive, &len);
+            int r = recvfrom(sockfd, receive_buf, buff_size1, 0, receive, &lens[game.turn]);
             if (r<0){ 
                 fprintf(stderr,"Error receiving msg\n");
                 return 1;
@@ -144,7 +150,7 @@ int main(int argc, char *argv[]){
             receive_buf[r] = '\0';
             valid = valid_mov(receive_buf, board);
             if (!valid){
-                int s = sendto(sockfd, bm,strlen(bm),0,&clients[game.turn],len);
+                int s = sendto(sockfd, bm,strlen(bm),0,&clients[game.turn],lens[game.turn]);
                 if (s<0){ 
                     fprintf(stderr,"Error sending bad move TXT msg\n");
                     return 1;
@@ -161,6 +167,7 @@ int main(int argc, char *argv[]){
 
         // 4. Check for END
         int term = check_terminated(board);
+        printf("Terminated: %d\n", term);
         if (term != -1){
             printf("Game ended.\n");
             char end[3];
@@ -168,7 +175,7 @@ int main(int argc, char *argv[]){
             end[1] = term;
             end[2] = '\0';
             for (int i = 0; i<2; i++){  // tell both players the game is done
-                int s = sendto(sockfd, end,3,0,&clients[i],len);
+                int s = sendto(sockfd, end,3,0,&clients[i],lens[game.turn]);
                 if (s<0){ 
                     fprintf(stderr,"Error sending END msg\n");
                     return 1;

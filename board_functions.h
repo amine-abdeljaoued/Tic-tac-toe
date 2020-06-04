@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
+//Amine Abdeljaoued and Anya Fries
+//https://github.com/amine-abdeljaoued/Tic-tac-toe
 
 /*
  * How the structure of messages in general works

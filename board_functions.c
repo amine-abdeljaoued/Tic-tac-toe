@@ -1,4 +1,6 @@
 #include "board_functions.h"
+//Amine Abdeljaoued and Anya Fries
+//https://github.com/amine-abdeljaoued/Tic-tac-toe
 
 //Rules: 
 //Player 1 has the 'X'
@@ -188,7 +190,8 @@ int check_terminated(char (*board)[3]){
             if((board[0][2]=='X')&&(board[2][0]=='X')){
                 return 1;
             }
-        else{
+        }
+        else if (board[1][1]=='O'){
             if((board[0][0]=='O')&&(board[2][2]=='O')){
                 return 2;
             }
@@ -196,7 +199,6 @@ int check_terminated(char (*board)[3]){
                 return 2;
             }
 
-        }
         }
     }
     // Check for draw
