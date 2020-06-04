@@ -167,7 +167,6 @@ int main(int argc, char *argv[]){
 
         // 4. Check for END
         int term = check_terminated(board);
-        printf("Terminated: %d\n", term);
         if (term != -1){
             printf("Game ended.\n");
             char end[3];
